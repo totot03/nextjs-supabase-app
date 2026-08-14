@@ -1,39 +1,51 @@
-# main 브랜치로 정리 + 단일 브랜치화
+# Push 실패(OAuth workflow 스코프) 해결
 
 ## Context
 
-직전 작업(개발 도구 설정)은 `dev/개발도구-설정` 브랜치에서 4개 커밋으로 완료했다. 조사 결과 **`main`이 이미 그 4개 커밋을 전부 포함**하고 있다(`git rev-list --left-right --count main...dev/개발도구-설정` → `0 0`, 완전히 동일한 커밋). 즉 "메인에 커밋"해야 할 새 작업 내용은 없고, 남은 일은 (1) 이제 쓸모없어진 `dev/개발도구-설정` 브랜치를 지워 브랜치를 `main` 하나만 남기는 것과, (2) 조사 중 발견된 3가지 미커밋 항목을 사용자 확인을 거쳐 정리하는 것이다.
+`git push origin main`이 매번 다음 오류로 거부된다:
+```
+! [remote rejected] main -> main (refusing to allow an OAuth App to create or update workflow `.github/workflows/ci.yml` without `workflow` scope)
+```
+이는 코드나 커밋 내용의 문제가 아니라 **GitHub의 정책**이다: OAuth App(현재는 Windows Git Credential Manager, `git config credential.helper` = `manager`)이 발급한 토큰으로 `.github/workflows/*.yml` 파일을 생성/수정하는 push를 하려면 그 토큰에 `workflow` 스코프가 있어야 하는데, 현재 캐시된 토큰에는 이 스코프가 없다. `gh auth status` 확인 결과 `gh` CLI 자체는 로그인되어 있지 않고, push가 인증 단계는 통과하고(즉 어떤 유효한 토큰은 있음) GitHub 서버의 스코프 검사에서만 막히는 상태다. 사용자가 재시도해도 동일한 오류가 재현됨을 확인했다.
+
+Pre-push 훅(`type-check`)은 매번 정상 통과하고 있어 로컬 검증에는 문제가 없다 — 순수하게 원격 인증 스코프 문제다.
 
 ## 사용자 결정 사항 (확정)
 
-1. **`shrimp_data/WebGUI.md`**: 현재 diff는 로컬 Task Manager 포트 번호 1줄(`56120` → `50164`)뿐, 의미 없는 런타임 값. → 이번 변경은 버리고(`git checkout --`), 앞으로 같은 소음이 반복되지 않도록 `.gitignore`에 추가.
-2. **`docs/guides/`**: `docs/*.md` 5개 파일과 내용이 100% 동일한 미추적 중복본(git 이력에도 없음, 출처 불명). → 삭제.
-3. **`.claude/plans/*.md`** (`recursive-doodling-comet.md`, `magical-doodling-kurzweil.md`): 이 프로젝트는 과거에 plan 파일 2개(`supabase-needs-lucky-hejlsberg.md`, `supabase-next-js-majestic-rabin.md`)를 커밋한 전례가 있음(커밋 `9b2f717`). → 같은 관례로 커밋.
+`gh` CLI로 `workflow` 스코프를 포함해 재로그인하는 방식을 사용한다 (SSH 전환이나 Credential Manager 토큰 삭제 방식은 사용하지 않음).
 
-## 실행 순서
+## 해결 절차
 
-1. **`shrimp_data/WebGUI.md` 변경 취소**: `git checkout -- shrimp_data/WebGUI.md`
-2. **`.gitignore`에 `shrimp_data/` 추가** (파일 맨 아래, 짧은 한글 주석과 함께 — 로컬 Task Manager 런타임 데이터라 커밋 대상이 아님을 명시). `shrimp_data/WebGUI.md`는 이미 git이 추적 중인 파일이므로, `.gitignore` 추가만으로는 앞으로도 계속 diff가 잡힌다 — `git rm --cached -r shrimp_data`로 인덱스에서 제거해야 실질적으로 무시되기 시작한다. (작업 디렉터리의 실제 파일은 삭제하지 않음, `--cached`만 사용)
-3. **`docs/guides/` 삭제**: `rm -rf docs/guides` (미추적 상태라 git 이력 손실 없음)
-4. **커밋 1** — `.gitignore` 변경 + `shrimp_data` 추적 해제:
-   `git add .gitignore && git rm -r --cached shrimp_data && git commit -m "🙈 chore: shrimp_data를 .gitignore에 추가 (로컬 Task Manager 런타임 데이터)"`
-5. **커밋 2** — plan 파일 2개 추가:
-   `git add .claude/plans/recursive-doodling-comet.md .claude/plans/magical-doodling-kurzweil.md && git commit -m "📝 docs: 개발 도구 설정 및 커밋 정리 plan 파일 추가"`
-   (단, `recursive-doodling-comet.md`는 지금 이 plan 내용 자체이므로 최종 실행 결과까지 반영해 커밋 직전에 다시 확인)
-6. **`docs/guides/` 삭제는 커밋 대상이 아님** (애초에 git이 몰랐던 미추적 디렉터리이므로 `rm -rf`만 하면 되고 별도 커밋 불필요 — working tree에서만 사라짐)
-7. **브랜치 정리**: `git branch -d dev/개발도구-설정` (main과 완전히 동일한 커밋을 가리키므로 `-d`로 안전하게 삭제 가능, `-D` 불필요)
-8. **최종 확인**: `git branch -a` → `main`(및 `remotes/origin/main`, `remotes/origin/HEAD`)만 남는지 확인. `git status --short` → 깨끗한지 확인.
+이 문제는 브라우저 기반 인증이 필요해 **사용자가 직접 실행**해야 한다. 나는 명령어를 안내하고, 완료 후 결과를 검증한 뒤 push를 대신 재시도한다.
 
-## 주의사항
+1. **사용자 실행 (터미널에 `!` 접두사로 입력)**:
+   ```
+   ! gh auth login --scopes workflow
+   ```
+   - Git provider: `GitHub.com`
+   - 프로토콜: `HTTPS`
+   - 인증 방식: 브라우저로 로그인 (기기 코드 방식 권장)
+   - 이 과정에서 `workflow` 스코프가 포함된 새 토큰이 발급된다.
 
-- `dev/개발도구-설정` 브랜치는 로컬에만 존재했고 원격(`origin`)에는 push된 적이 없으므로, 원격 브랜치 삭제는 필요 없다.
-- `shrimp_data`를 통째로 `git rm --cached`하면 `WebGUI.md` 외에 다른 파일이 더 있을 경우 함께 추적 해제된다 — 실행 전 `git ls-files shrimp_data/`로 실제 대상 파일 목록을 먼저 확인한다.
-- 이번 정리 작업은 커밋 메시지에 Claude 서명을 추가하지 않는다 (`git:commit` 스킬/프로젝트 규칙).
+2. **사용자 실행**:
+   ```
+   ! gh auth setup-git
+   ```
+   git이 github.com에 대해 `gh`가 발급한 토큰을 credential helper로 사용하도록 설정한다.
+
+3. **내가 검증(읽기 전용)**:
+   - `gh auth status` — `workflow` 스코프 포함 여부와 로그인 상태 확인
+   - `git config --list --show-origin | grep credential` — `gh`의 credential helper가 기존 `manager` 설정보다 우선 적용되는지 확인. (Git은 여러 `credential.helper`가 설정된 경우 등록된 순서대로 시도하며, 보통 나중에 등록된 것이 우선 순위를 갖거나 각 helper가 순차적으로 값을 채운다. `gh auth setup-git`은 `credential.https://github.com.helper`를 github.com에 한정해 등록하므로 전역 `manager` 설정보다 더 구체적인 스코프로 우선 적용된다 — 정상적으로는 추가 설정 없이 해결되어야 한다.)
+
+4. **내가 재시도**: `git push origin main`
+
+5. **문제가 지속될 경우의 대체 경로** (2번까지 진행했는데도 동일 오류가 나올 때만):
+   - `git config --get-all credential.helper`로 helper 우선순위 확인 후, 필요하면 `git config --unset-all credential.helper && git config credential.helper manager` 재등록 순서 조정 — 단, 이 단계는 실제로 3번 검증에서 문제가 확인된 경우에만 사용자 동의 하에 진행한다 (자격 증명 설정을 함부로 변경하지 않음).
 
 ## 검증
 
 ```powershell
-git status --short   # 비어 있어야 함
-git branch -a         # main (+ remotes/origin/main, remotes/origin/HEAD)만 남아야 함
-git log --oneline -8  # 새 정리 커밋 2개가 잘 얹혔는지 확인
+gh auth status              # workflow 스코프 포함 확인
+git push origin main         # 성공해야 함 (2869005..bfdcedd main -> main 형태로 반영)
 ```
+push 성공 후, GitHub 저장소의 Actions 탭에서 `ci.yml` 워크플로우가 인식되고 정상적으로 트리거되는지 사용자에게 확인 요청.
