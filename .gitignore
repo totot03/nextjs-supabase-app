@@ -43,3 +43,6 @@ next-env.d.ts
 
 # shrimp-task-manager MCP 로컬 런타임 데이터 (실행할 때마다 포트 번호 등이 바뀜)
 shrimp_data/
+
+# Playwright MCP 디버그 로그(콘솔 로그·페이지 스냅샷)
+.playwright-mcp/
