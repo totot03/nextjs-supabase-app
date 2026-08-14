@@ -75,16 +75,17 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
 
 4. Rename `.env.example` to `.env.local` and update the following:
 
-  ```env
-  NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[INSERT SUPABASE PROJECT API PUBLISHABLE OR ANON KEY]
-  ```
-  > [!NOTE]
-  > This example uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, which refers to Supabase's new **publishable** key format.
-  > Both legacy **anon** keys and new **publishable** keys can be used with this variable name during the transition period. Supabase's dashboard may show `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value can be used in this example.
-  > See the [full announcement](https://github.com/orgs/supabase/discussions/29260) for more information.
+```env
+NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[INSERT SUPABASE PROJECT API PUBLISHABLE OR ANON KEY]
+```
 
-  Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
+> [!NOTE]
+> This example uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, which refers to Supabase's new **publishable** key format.
+> Both legacy **anon** keys and new **publishable** keys can be used with this variable name during the transition period. Supabase's dashboard may show `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value can be used in this example.
+> See the [full announcement](https://github.com/orgs/supabase/discussions/29260) for more information.
+
+Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
 
 5. You can now run the Next.js local development server:
 
@@ -97,6 +98,18 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
 6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
 
 > Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
+
+## 개발 도구 (Development Tooling)
+
+이 프로젝트는 다음과 같은 정적 검사/포맷 도구를 사용합니다.
+
+- **ESLint**: `npm run lint` (`next/core-web-vitals` + `next/typescript`). Prettier와 충돌하는 스타일 규칙은 `eslint-config-prettier`로 비활성화되어 있습니다.
+- **Prettier**: `npm run format` (전체 포맷 적용) / `npm run format:check` (검사만, 수정 없음). Tailwind 클래스는 `prettier-plugin-tailwindcss`가 자동으로 정렬합니다.
+- **TypeScript 타입 체크**: `npm run type-check` (`tsc --noEmit`)
+- **Git 훅 (Husky + lint-staged)**: `npm install` 실행 시 `prepare` 스크립트로 훅이 자동 설정됩니다.
+  - `pre-commit`: staged 파일에 대해 `eslint --fix` + `prettier --write`를 자동 실행합니다.
+  - `pre-push`: 프로젝트 전체에 대해 `type-check`를 실행합니다.
+- **CI (GitHub Actions)**: `main` 브랜치로의 push/PR마다 `.github/workflows/ci.yml`이 `lint` → `format:check` → `type-check` → `build`를 순서대로 실행합니다.
 
 ## Feedback and issues
 
