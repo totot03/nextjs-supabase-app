@@ -1,0 +1,22 @@
+node_modules
+.next
+.vercel
+out
+build
+coverage
+*.tsbuildinfo
+package-lock.json
+next-env.d.ts
+public
+
+.husky/_
+
+# Claude Code 설정/에이전트/plan 파일 - 애플리케이션 코드가 아니며, 다른 세션이 작업 중인
+# plan 파일 등이 섞여 있어 일괄 포맷 대상에서 제외
+.claude
+
+# shrimp-task-manager MCP가 자동 생성/관리하는 데이터
+shrimp_data
+
+# 실제 상태와 다른 내용이 섞여 있어 별도로 정리 예정 (CLAUDE.md 참고), 이번 작업 스코프 밖
+docs
