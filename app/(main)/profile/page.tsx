@@ -3,6 +3,7 @@ import { formatDate, getInitials } from "@/lib/format";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogoutButton } from "@/components/logout-button";
 import { ProfileNameForm } from "@/components/profile/profile-name-form";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 // 프로필 페이지 (F011)
 // TODO(Task 008): dummyCurrentUser를 실제 세션 사용자(SessionUser)로 교체
@@ -40,6 +41,16 @@ export default function ProfilePage() {
             {formatDate(user.created_at)}
           </span>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between rounded-lg border p-4">
+        <div>
+          <p className="text-sm font-medium">화면 모드</p>
+          <p className="text-sm text-muted-foreground">
+            라이트/다크/시스템 설정 중 선택할 수 있어요.
+          </p>
+        </div>
+        <ThemeSwitcher />
       </div>
 
       <LogoutButton />
