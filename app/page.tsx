@@ -1,58 +1,68 @@
-import { DeployButton } from "@/components/deploy-button";
-import { EnvVarWarning } from "@/components/env-var-warning";
-import { AuthButton } from "@/components/auth-button";
-import { Hero } from "@/components/hero";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { ConnectSupabaseSteps } from "@/components/tutorial/connect-supabase-steps";
-import { SignUpUserSteps } from "@/components/tutorial/sign-up-user-steps";
-import { hasEnvVars } from "@/lib/utils";
 import Link from "next/link";
-import { Suspense } from "react";
+import { CalendarPlus, Share2, Users } from "lucide-react";
 
+import { MobileViewport } from "@/components/layout/mobile-viewport";
+import { ThemeSwitcher } from "@/components/theme-switcher";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const FEATURES = [
+  {
+    icon: CalendarPlus,
+    title: "간편한 이벤트 생성",
+    description: "제목, 날짜, 장소만 입력하면 3초 만에 이벤트가 만들어져요.",
+  },
+  {
+    icon: Share2,
+    title: "원클릭 초대 링크 공유",
+    description: "자동 생성된 초대 링크 하나로 카카오톡, 문자 공유가 끝나요.",
+  },
+  {
+    icon: Users,
+    title: "실시간 참여자 확인",
+    description: "누가 참여했는지 실시간으로 업데이트되는 목록을 확인하세요.",
+  },
+] as const;
+
+// 비로그인 사용자를 위한 서비스 소개 및 로그인 유도 랜딩 페이지 (F001)
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center">
-      <div className="flex w-full flex-1 flex-col items-center gap-20">
-        <nav className="flex h-16 w-full justify-center border-b border-b-foreground/10">
-          <div className="flex w-full max-w-5xl items-center justify-between p-3 px-5 text-sm">
-            <div className="flex items-center gap-5 font-semibold">
-              <Link href={"/"}>Next.js Supabase Starter</Link>
-              <div className="flex items-center gap-2">
-                <DeployButton />
-              </div>
-            </div>
-            {!hasEnvVars ? (
-              <EnvVarWarning />
-            ) : (
-              <Suspense>
-                <AuthButton />
-              </Suspense>
-            )}
-          </div>
-        </nav>
-        <div className="flex max-w-5xl flex-1 flex-col gap-20 p-5">
-          <Hero />
-          <main className="flex flex-1 flex-col gap-6 px-4">
-            <h2 className="mb-4 text-xl font-medium">Next steps</h2>
-            {hasEnvVars ? <SignUpUserSteps /> : <ConnectSupabaseSteps />}
-          </main>
+    <MobileViewport className="flex flex-col">
+      <main className="flex flex-1 flex-col gap-10 px-4 py-10">
+        <div className="space-y-3 pt-6 text-center">
+          <h1 className="text-2xl font-bold">Gather</h1>
+          <p className="text-muted-foreground">
+            초대 링크 하나로 끝나는
+            <br />
+            소규모 모임 관리 플랫폼
+          </p>
         </div>
 
-        <footer className="mx-auto flex w-full items-center justify-center gap-8 border-t py-16 text-center text-xs">
-          <p>
-            Powered by{" "}
-            <a
-              href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-              target="_blank"
-              className="font-bold hover:underline"
-              rel="noreferrer"
-            >
-              Supabase
-            </a>
-          </p>
-          <ThemeSwitcher />
-        </footer>
-      </div>
-    </main>
+        <div className="space-y-3">
+          {FEATURES.map(({ icon: Icon, title, description }) => (
+            <Card key={title}>
+              <CardHeader className="flex-row items-center gap-3 space-y-0">
+                <div className="shrink-0 rounded-full bg-muted p-2">
+                  <Icon className="size-5" />
+                </div>
+                <CardTitle className="text-base">{title}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                {description}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Button asChild size="lg" className="w-full">
+          <Link href="/auth/login">Google로 시작하기</Link>
+        </Button>
+      </main>
+
+      <footer className="flex items-center justify-between border-t px-4 py-4 text-xs text-muted-foreground">
+        <span>© Gather</span>
+        <ThemeSwitcher />
+      </footer>
+    </MobileViewport>
   );
 }
