@@ -11,6 +11,16 @@ import { dummyParticipants } from "./participants";
 
 export { dummyUsers, dummyEvents, dummyParticipants };
 
+/**
+ * 더미 단계의 "로그인한 사용자".
+ * Task 007/008(DB 스키마 확정, 인증 시스템)이 붙기 전까지, 주최자 뷰를 시연하기 위해
+ * dummyUsers 중 이벤트를 2개 소유한 user-02(김민준)로 고정한다. 실제 세션이 연결되면
+ * `supabase.auth.getClaims()` + profiles 조회 결과(`types/auth.ts`의 SessionUser)로
+ * 교체될 예정이며, 이 값을 참조하는 모든 곳(목록/상세/프로필 페이지)은 이 상수 하나만
+ * 바꾸면 되도록 설계했다.
+ */
+export const dummyCurrentUser: UserProfile = dummyUsers[1];
+
 /** id로 이벤트를 조회한다. 존재하지 않으면 undefined를 반환한다. */
 export function getEventById(id: string): Event | undefined {
   return dummyEvents.find((event) => event.id === id);
