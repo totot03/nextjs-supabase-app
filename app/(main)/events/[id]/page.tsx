@@ -1,3 +1,21 @@
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { CalendarDays, ImageIcon, MapPin, Users } from "lucide-react";
+
+import {
+  dummyCurrentUser,
+  getEventDetailResponse,
+  getUserProfileById,
+} from "@/lib/dummy";
+import { eventStatusMap } from "@/lib/event-status";
+import { formatEventDate } from "@/lib/format";
+import { ParticipantCard } from "@/components/common/participant-card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DeleteEventDialog } from "@/components/events/delete-event-dialog";
+import { InviteShareCard } from "@/components/events/invite-share-card";
+
 interface EventDetailPageProps {
   params: Promise<{ id: string }>;
 }
@@ -6,18 +24,105 @@ interface EventDetailPageProps {
 // 항상 다른 콘텐츠를 보여줄 이 라우트는 정적 프리렌더링 대신 온디맨드 렌더링으로 명시한다.
 export const instant = false;
 
-// 이벤트 상세 페이지 골격 (Task 004/005에서 주최자/참여자 역할별 UI로 교체)
+// 이벤트 상세 페이지 - 주최자 뷰 (F002, F003, F005, F006)
+// TODO(Task 005): 참여자 뷰(공유/관리 UI 숨김, 읽기 전용 안내) 분기 추가
 export default async function EventDetailPage({
   params,
 }: EventDetailPageProps) {
   const { id } = await params;
+  const detail = getEventDetailResponse(id);
+
+  if (!detail) {
+    notFound();
+  }
+
+  const { event, participants } = detail;
+  const status = eventStatusMap[event.status];
+  const isHost = event.created_by === dummyCurrentUser.id;
+
+  // 참여자 목록에서 주최자가 맨 위에 오도록 정렬한다.
+  const sortedParticipants = [...participants].sort((a, b) => {
+    if (a.role === b.role) return 0;
+    return a.role === "host" ? -1 : 1;
+  });
 
   return (
-    <div className="px-4 py-6">
-      <h1 className="text-2xl font-bold">이벤트 상세</h1>
-      <p className="mt-2 text-muted-foreground">
-        이벤트 ID: {id} (상세 UI는 Task 004/005에서 구현 예정)
-      </p>
+    <div className="flex flex-col gap-6 pb-10">
+      <div className="relative aspect-video w-full bg-muted">
+        {event.cover_image_url ? (
+          <Image
+            src={event.cover_image_url}
+            alt={event.title}
+            fill
+            sizes="448px"
+            className="object-cover"
+            priority
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <ImageIcon className="size-8 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3 px-4">
+        <Badge className={status.className}>{status.label}</Badge>
+        <h1 className="text-2xl font-bold">{event.title}</h1>
+
+        <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <CalendarDays className="size-4 shrink-0" />
+            {formatEventDate(event.event_date)}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <MapPin className="size-4 shrink-0" />
+            {event.location}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Users className="size-4 shrink-0" />
+            참여자 {participants.length}명
+          </span>
+        </div>
+
+        {event.description && (
+          <p className="whitespace-pre-wrap text-sm">{event.description}</p>
+        )}
+      </div>
+
+      {isHost && (
+        <div className="px-4">
+          <InviteShareCard inviteCode={event.invite_code} />
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3 px-4">
+        <h2 className="text-lg font-semibold">
+          참여자 {participants.length}명
+        </h2>
+        <div className="flex flex-col gap-2">
+          {sortedParticipants.map((participant) => {
+            const profile = getUserProfileById(participant.user_id);
+            if (!profile) return null;
+
+            return (
+              <ParticipantCard
+                key={participant.id}
+                participant={participant}
+                profile={profile}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {isHost && (
+        <div className="flex flex-col gap-2 px-4">
+          <Button asChild variant="outline">
+            <Link href={`/events/${event.id}/edit`}>이벤트 수정</Link>
+          </Button>
+          <DeleteEventDialog eventTitle={event.title} />
+        </div>
+      )}
     </div>
   );
 }
