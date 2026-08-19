@@ -8,8 +8,9 @@ interface JoinPageProps {
 export const instant = false;
 
 // 초대 링크 참여 페이지 골격 (F004: 비로그인 사용자도 미리보기가 보여야 함)
-// 주의: proxy.ts가 이 경로를 인증 예외로 처리하지 않아, 현재는 비로그인 접근 시
-// /auth/login으로 리다이렉트된다. 실제 비로그인 미리보기 허용은 Task 008에서 처리한다.
+// lib/supabase/proxy.ts의 PUBLIC_PATH_PREFIXES에 "/join"이 등록되어 있어
+// 비로그인 사용자도 이 경로에 접근 가능하다. 로그인 후 자동 참여 처리 로직은
+// Task 010(참여자 관리)에서 구현한다.
 export default async function JoinPage({ params }: JoinPageProps) {
   const { invite_code: inviteCode } = await params;
 
