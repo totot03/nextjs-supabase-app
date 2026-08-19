@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, ImageIcon, MapPin, Users } from "lucide-react";
+import { CalendarDays, Eye, ImageIcon, MapPin, Users } from "lucide-react";
 
 import {
   dummyCurrentUser,
@@ -13,6 +13,7 @@ import { formatEventDate } from "@/lib/format";
 import { ParticipantCard } from "@/components/common/participant-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { DeleteEventDialog } from "@/components/events/delete-event-dialog";
 import { InviteShareCard } from "@/components/events/invite-share-card";
 
@@ -24,8 +25,9 @@ interface EventDetailPageProps {
 // 항상 다른 콘텐츠를 보여줄 이 라우트는 정적 프리렌더링 대신 온디맨드 렌더링으로 명시한다.
 export const instant = false;
 
-// 이벤트 상세 페이지 - 주최자 뷰 (F002, F003, F005, F006)
-// TODO(Task 005): 참여자 뷰(공유/관리 UI 숨김, 읽기 전용 안내) 분기 추가
+// 이벤트 상세 페이지 - 주최자/참여자 통합 뷰 (F002, F003, F005, F006)
+// isHost(role은 이벤트별 속성)에 따라 초대 공유·수정·삭제는 주최자에게만,
+// 읽기 전용 안내는 참여자에게만 보여준다.
 export default async function EventDetailPage({
   params,
 }: EventDetailPageProps) {
@@ -89,9 +91,21 @@ export default async function EventDetailPage({
         )}
       </div>
 
-      {isHost && (
+      {isHost ? (
         <div className="px-4">
           <InviteShareCard inviteCode={event.invite_code} />
+        </div>
+      ) : (
+        <div className="px-4">
+          <Card className="border-dashed">
+            <CardContent className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
+              <Eye className="size-4 shrink-0" />
+              <p>
+                참여자로 보고 있어요. 정보 수정, 삭제, 초대 링크 공유는 주최자만
+                할 수 있어요.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       )}
 

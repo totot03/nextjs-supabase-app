@@ -36,6 +36,25 @@ export function getEventsByCreator(userId: string): Event[] {
   return dummyEvents.filter((event) => event.created_by === userId);
 }
 
+/**
+ * 특정 사용자가 "참여자"(host가 아닌 role: "participant") 역할로 속한 이벤트 목록을 조회한다.
+ * "주최한 이벤트" 탭(getEventsByCreator)과 겹치지 않도록 host로 참여 중인 이벤트는 제외해,
+ * 목록 페이지의 두 탭이 서로 배타적인 집합을 보여주도록 한다.
+ */
+export function getEventsByParticipant(userId: string): Event[] {
+  const eventIds = new Set(
+    dummyParticipants
+      .filter((p) => p.user_id === userId && p.role === "participant")
+      .map((p) => p.event_id),
+  );
+  return dummyEvents.filter((event) => eventIds.has(event.id));
+}
+
+/** 초대 코드로 이벤트를 조회한다. 존재하지 않으면 undefined를 반환한다(F004 무효 코드 케이스). */
+export function getEventByInviteCode(inviteCode: string): Event | undefined {
+  return dummyEvents.find((event) => event.invite_code === inviteCode);
+}
+
 /** 특정 이벤트에 속한 참여자 목록을 조회한다. */
 export function getParticipantsByEvent(eventId: string): EventParticipant[] {
   return dummyParticipants.filter(

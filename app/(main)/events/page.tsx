@@ -5,41 +5,59 @@ import type { EventStatus } from "@/types/domain";
 import {
   dummyCurrentUser,
   getEventsByCreator,
+  getEventsByParticipant,
   getParticipantsByEvent,
 } from "@/lib/dummy";
 import { EmptyState } from "@/components/common/empty-state";
 import { EventCard } from "@/components/common/event-card";
 import { EventStatusFilter } from "@/components/events/event-status-filter";
+import {
+  EventViewTabs,
+  type EventView,
+} from "@/components/events/event-view-tabs";
 
 interface EventsPageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; view?: string }>;
 }
 
 const VALID_STATUSES: EventStatus[] = ["upcoming", "ongoing", "ended"];
+const VALID_VIEWS: EventView[] = ["hosting", "joined"];
 
 function isEventStatus(value: string | undefined): value is EventStatus {
   return VALID_STATUSES.includes(value as EventStatus);
 }
 
+function isEventView(value: string | undefined): value is EventView {
+  return VALID_VIEWS.includes(value as EventView);
+}
+
 // cacheComponents 환경에서 searchParams는 요청 시점에만 정해지므로 온디맨드 렌더링으로 명시한다.
 export const instant = false;
 
-// 내 이벤트 목록 페이지 - 주최자 뷰 (F007, F008)
-// TODO(Task 007/008): getEventsByCreator(dummyCurrentUser.id)를 실제 세션 사용자 기반 쿼리로 교체
+// 내 이벤트 목록 페이지 - 주최자/참여자 통합 뷰 (F007, F008)
+// role은 유저 전역 속성이 아니라 이벤트별 속성(ParticipantRole)이라 한 사용자가
+// 주최한 이벤트와 참여한 이벤트를 동시에 가질 수 있다. 그래서 페이지를 분리하는 대신
+// "주최한/참여한" 탭(EventViewTabs)으로 같은 사용자의 두 role을 모두 보여준다.
+// TODO(Task 007/008): getEventsByCreator/getEventsByParticipant를 실제 세션 사용자 기반 쿼리로 교체
 export default async function EventsPage({ searchParams }: EventsPageProps) {
-  const { status } = await searchParams;
+  const { status, view } = await searchParams;
   const activeStatus = isEventStatus(status) ? status : undefined;
+  const activeView = isEventView(view) ? view : "hosting";
 
-  const myEvents = getEventsByCreator(dummyCurrentUser.id);
+  const baseEvents =
+    activeView === "hosting"
+      ? getEventsByCreator(dummyCurrentUser.id)
+      : getEventsByParticipant(dummyCurrentUser.id);
   const events = activeStatus
-    ? myEvents.filter((event) => event.status === activeStatus)
-    : myEvents;
+    ? baseEvents.filter((event) => event.status === activeStatus)
+    : baseEvents;
 
   return (
     <div className="flex flex-col gap-4 px-4 py-6">
       <h1 className="text-2xl font-bold">내 이벤트</h1>
 
-      <EventStatusFilter active={activeStatus} />
+      <EventViewTabs active={activeView} status={activeStatus} />
+      <EventStatusFilter active={activeStatus} view={activeView} />
 
       {events.length === 0 ? (
         <EmptyState
@@ -47,10 +65,20 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
           title={
             activeStatus
               ? "해당 상태의 이벤트가 없어요"
-              : "아직 만든 이벤트가 없어요"
+              : activeView === "hosting"
+                ? "아직 만든 이벤트가 없어요"
+                : "아직 참여한 이벤트가 없어요"
           }
-          description="새 이벤트를 만들고 초대 링크를 공유해보세요."
-          action={{ label: "이벤트 만들기", href: "/events/create" }}
+          description={
+            activeView === "hosting"
+              ? "새 이벤트를 만들고 초대 링크를 공유해보세요."
+              : "초대 링크를 받으면 이벤트에 참여할 수 있어요."
+          }
+          action={
+            activeView === "hosting"
+              ? { label: "이벤트 만들기", href: "/events/create" }
+              : undefined
+          }
         />
       ) : (
         <div className="flex flex-col gap-4">

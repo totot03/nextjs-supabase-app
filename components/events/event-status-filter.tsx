@@ -1,12 +1,16 @@
 import Link from "next/link";
 
 import type { EventStatus } from "@/types/domain";
+import type { EventView } from "@/components/events/event-view-tabs";
 import { eventStatusMap } from "@/lib/event-status";
+import { buildEventsHref } from "@/lib/events-query";
 import { cn } from "@/lib/utils";
 
 interface EventStatusFilterProps {
   /** 현재 선택된 상태. undefined면 "전체"가 활성화된 상태다. */
   active?: EventStatus;
+  /** 상태를 바꿔도 현재 탭(주최한/참여한)이 유지되도록 함께 받는다. */
+  view: EventView;
 }
 
 const FILTERS: { value?: EventStatus; label: string }[] = [
@@ -21,7 +25,7 @@ const FILTERS: { value?: EventStatus; label: string }[] = [
  * 쿼리스트링(`?status=`) 기반이라 클라이언트 상태 없이 서버 컴포넌트로 구현했다 —
  * 필터를 바꿔도 자바스크립트 없이 서버에서 다시 렌더링된다.
  */
-export function EventStatusFilter({ active }: EventStatusFilterProps) {
+export function EventStatusFilter({ active, view }: EventStatusFilterProps) {
   return (
     <div className="flex gap-2 overflow-x-auto">
       {FILTERS.map(({ value, label }) => {
@@ -30,7 +34,7 @@ export function EventStatusFilter({ active }: EventStatusFilterProps) {
         return (
           <Link
             key={label}
-            href={value ? `/events?status=${value}` : "/events"}
+            href={buildEventsHref(view, value)}
             className={cn(
               "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
               isActive
